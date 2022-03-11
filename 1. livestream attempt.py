@@ -1,8 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[34]:
-
 
 import argparse
 import time
@@ -11,16 +6,9 @@ import pandas as pd
 import sys
 
 
-# In[35]:
-
-
 import brainflow
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, LogLevels, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes, AggOperations
-
-
-# In[37]:
-
 
 def main():
     BoardShim.enable_dev_board_logger()
@@ -54,23 +42,12 @@ if __name__ == "__main__":
     main()
 
 
-# In[ ]:
-
-
 #########################################################################
 ###########################################################################
 ###################################################################
 #################################################################
 
-
-# In[38]:
-
-
 print(data)
-
-
-# In[3]:
-
 
 def main():
     BoardShim.enable_dev_board_logger()
@@ -102,10 +79,6 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-# In[ ]:
-
 
 
 
