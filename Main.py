@@ -1,12 +1,14 @@
 #import argparse
-#import time
+import time
 import logging
-#import numpy as np
+import numpy as np
 #import pandas as pd
 #import matplotlib.pyplot as plt
 #import brainflow
 from brainflow.board_shim import BoardShim, BrainFlowInputParams, LogLevels, BoardIds
 from brainflow.data_filter import DataFilter, FilterTypes, AggOperations, DetrendOperations
+from brainflow.ml_model import MLModel, BrainFlowMetrics, BrainFlowClassifiers, BrainFlowModelParams
+from brainflow.exit_codes import *
 
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtGui, QtCore
@@ -52,7 +54,30 @@ class Graph:
             self.curves.append(curve)
 
     def update(self):
+        time.sleep(5)
         data = self.board_shim.get_current_board_data(self.num_points)
+        master_board_id = 0
+        sampling_rate = BoardShim.get_sampling_rate(master_board_id)
+        eeg_channels = BoardShim.get_eeg_channels(int(master_board_id))
+        bands = DataFilter.get_avg_band_powers(data, eeg_channels, sampling_rate, True)
+        feature_vector = np.concatenate((bands[0], bands[1]))
+        print(feature_vector)
+
+        # calc concentration
+        concentration_params = BrainFlowModelParams(BrainFlowMetrics.CONCENTRATION.value,
+                                                    BrainFlowClassifiers.KNN.value)
+        concentration = MLModel(concentration_params)
+        concentration.prepare()
+        print('Concentration: %f' % concentration.predict(feature_vector))
+        concentration.release()
+
+        # calc relaxation
+        relaxation_params = BrainFlowModelParams(BrainFlowMetrics.RELAXATION.value,
+                                                 BrainFlowClassifiers.REGRESSION.value)
+        relaxation = MLModel(relaxation_params)
+        relaxation.prepare()
+        print('Relaxation: %f' % relaxation.predict(feature_vector))
+        relaxation.release()
 
         # 'a' to append, 'w' to just overwrite:
         # file size grows too fast. keep commented for now.
@@ -76,6 +101,8 @@ class Graph:
 
 def main():
     BoardShim.enable_dev_board_logger()
+    DataFilter.enable_data_logger()
+    MLModel.enable_ml_logger()
 
     # params have been given default values to avoid the headache of using 'argparse':
     params = BrainFlowInputParams()
@@ -95,7 +122,13 @@ def main():
         board.prepare_session()
         # board.start_stream () # use this for default options
         board.start_stream(45000, None)
+        # new code start
+        BoardShim.log_message(LogLevels.LEVEL_INFO.value, 'start sleeping in the main thread')
+        time.sleep(5)
         Graph(board) # Live plot
+        board.stop_stream()
+        board.release_session()
+
     except BaseException:
         logging.warning('Exception', exc_info=True)
     finally:
